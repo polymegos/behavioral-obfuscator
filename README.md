@@ -1,5 +1,7 @@
 # Behavioral Obfuscator
 
+[GreasyFork.org](https://greasyfork.org/scripts/531414-behavioral-obfuscator)
+
 **Behavioral Obfuscator** is a lightweight anti-fingerprinting userscript designed to protect against tracking by manipulating typing, scrolling, and timing behavior.
 By introducing non-uniform jitter and subtle noise, it prevents websites from accurately profiling users based on their interaction patterns, without compromising the user experience.
 
