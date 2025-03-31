@@ -38,7 +38,14 @@
                     key: e.key,
                     code: e.code,
                     keyCode: e.keyCode,
-                    which: e.which
+                    which: e.which,
+                    shiftKey: e.shiftKey,
+                    ctrlKey: e.ctrlKey,
+                    altKey: e.altKey,
+                    metaKey: e.metaKey,
+                    bubbles: e.bubbles,
+                    cancelable: e.cancelable,
+                    composed: e.composed
                 }));
             }, delay);
         }, 5); // Prefix with tiny added initial delay before simulating keypress
