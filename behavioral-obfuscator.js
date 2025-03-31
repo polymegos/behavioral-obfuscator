@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name            Behavioral Obfuscator
 // @version         0.1.0
-// @description     Anti-Fingerprinting Timing & Scroll Protection - Introduces randomized timing jitter to prevent fingerprinting via scroll, typing, and behavior patterns without affecting UX.
+// @description     Anti-Fingerprinting Timing & Scroll Protection - Introduces randomized timing jitter to prevent fingerprinting via scroll and typing patterns without affecting UX.
 // @author          PolyMegos (https://github.com/polymegos)
 // @namespace       https://github.com/polymegos/behavioral-obfuscator
 // @supportURL      https://github.com/polymegos/behavioral-obfuscator/issues
@@ -19,95 +19,47 @@
 (function() {
     'use strict';
 
-    // Fast, random jitter generation
+    // Small-range subtle jitter generation
     function generateJitter(range) {
         return (Math.random() * 2 - 1) * range;
     }
 
-    // Dynamically change jitter scale with different interval
-    let jitterScale = 1.0;  // Vary this between 0.5 and 1.5
-    let jitterInterval = setInterval(() => {
-        jitterScale = 0.5 + Math.random();
-    }, 4000);  // This helps avoid long-term pattern detection
-
-    // Handle 'performance.now' jittering
-    const origPerformanceNow = performance.now.bind(performance);
-    Object.defineProperty(performance, 'now', {
-        value: function() {
-            const jitter = generateJitter(80 * jitterScale); // +/-(40-120ms) jitter
-            return origPerformanceNow() + jitter;
-        },
-        writable: false,
-        configurable: false
-    });
-
-    // Handle 'Date.now' jittering (different scale from 'performance.now')
-    const origDateNow = Date.now.bind(Date);
-    Object.defineProperty(Date, 'now', {
-        value: function() {
-            const jitter = generateJitter(160 * jitterScale); // +/-(80-240ms) jitter
-            return origDateNow() + jitter;
-        },
-        writable: false,
-        configurable: false
-    });
-
-    // Hook into 'Date.prototype.getTime', prevent alternate timing fingerprinting
-    const origGetTime = Date.prototype.getTime;
-    Date.prototype.getTime = function() {
-        const jitter = generateJitter(160 * jitterScale); // +/-(80-240ms) jitter
-        return origGetTime.call(this) + jitter;
-    };
-
-    // Injectable pauses for scroll or typing
-    function randomPause() {
-        if (Math.random() < 0.05) {  // Likelihood is 5% for UX
-            const delay = Math.random() * 3;  // 0-3ms delay, light enough not to be notices
-            const start = performance.now();
-            while (performance.now() - start < delay) {}  // Busy-waiting, but eh, it's quick
-        }
-    }
-
-    // Noisy scroll jittering
-    let lastScrollTime = 0;
-    window.addEventListener('scroll', () => {
-        randomPause();
-        const now = performance.now();
-        if (now - lastScrollTime < 40) return;
-        lastScrollTime = now;
-
-        let scrollX = window.scrollX;
-        let scrollY = window.scrollY;
-
-        // Randomized noise to scroll values (2 pixels +/-)
-        const noiseX = generateJitter(2);
-        const noiseY = generateJitter(2);
-
-        window.scrollTo(scrollX + noiseX, scrollY + noiseY);
-    }, { passive: true });
-
-    // Typing obfuscation via typing event jitter
+    // Apply typing jitter only when a keys are pressed
     let typingTimer = null;
-    const TYPING_DELAY_MIN = 50;  // Min keystroke delay
-    const TYPING_DELAY_MAX = 250; // Max keystroke delay
-
-    // Triggers typing jitter on key events
     window.addEventListener('keydown', (e) => {
-        randomPause();
         if (typingTimer) clearTimeout(typingTimer);
+        // Some small delay before processing key event
         typingTimer = setTimeout(() => {
-            // Obfuscate timing with random delay preceding each keypress
-            const randomDelay = Math.random() * (TYPING_DELAY_MAX - TYPING_DELAY_MIN) + TYPING_DELAY_MIN;
+            const delay = Math.random() * 40 + Math.random() * 40; // 0-80ms delay for typing
             e.preventDefault();
             setTimeout(() => {
-                // We trigger the keypress ourselves here, after the delay
+                // Simulate the keypress after random delay
                 document.dispatchEvent(new KeyboardEvent('keydown', {
                     key: e.key,
                     code: e.code,
                     keyCode: e.keyCode,
                     which: e.which
                 }));
-            }, randomDelay);
-        }, 10);
+            }, delay);
+        }, 5); // Prefix with tiny added initial delay before simulating keypress
     });
+
+    // Apply scroll delay jitter only when user actually scrolls
+    let lastScrollTime = 0;
+    window.addEventListener('scroll', () => {
+        const now = performance.now();
+        const delay = Math.random() * 75 + Math.random() * 75; // 0-150ms delay between scrolls
+        
+        // Add small jitter to scroll position when the user scrolls
+        if (now - lastScrollTime < delay) return; // Don't interrupt if scrolling too fast
+        lastScrollTime = now;
+        let scrollX = window.scrollX;
+        let scrollY = window.scrollY;
+        
+        // Add small jitter to scroll position (1-2 pixels offset)
+        const noiseX = generateJitter(2);
+        const noiseY = generateJitter(2);
+        window.scrollTo(scrollX + noiseX, scrollY + noiseY);
+    }, { passive: true });
+
 })();
